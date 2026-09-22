@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6f6f3">
+<title>Less</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;color:#171717;background:#f6f6f3}
+*{box-sizing:border-box}body{margin:0;background:#f6f6f3}main{max-width:600px;margin:auto;padding:28px 18px 48px}
+h1{font-size:34px;margin:2px 0 3px}.muted{color:#777}.card{background:#fff;border:1px solid #e6e6e1;border-radius:25px;padding:20px;margin:16px 0;box-shadow:0 5px 22px #00000008}
+.label{font-size:12px;font-weight:750;letter-spacing:.09em;color:#888}.hero{font-size:22px;font-weight:650;margin-top:10px;line-height:1.25}
+.section{margin:18px 0}.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.section-head h3{margin:0;font-size:20px}.item{display:flex;gap:12px;align-items:flex-start;padding:15px 0;border-bottom:1px solid #eee}.item:last-child{border:0}.check{width:25px;height:25px;border:1.5px solid #bbb;border-radius:50%;background:#fff;font-size:15px;flex:0 0 25px}.done .title{text-decoration:line-through;color:#999}.item-title{font-size:17px;line-height:1.35}.meta{font-size:13px;color:#777;margin-top:4px;line-height:1.35}
+.primary{width:100%;padding:17px;border:0;border-radius:19px;background:#202020;color:#fff;font-size:17px;font-weight:700}.secondary{width:100%;padding:14px;border:1px solid #ddd;border-radius:17px;background:#fff;font-weight:650}
+textarea{width:100%;min-height:150px;margin-top:14px;border:1px solid #ddd;border-radius:19px;padding:16px;font:17px/1.4 inherit;background:#fbfbf9;outline:none}textarea:focus{border-color:#999}
+.result{margin-top:16px;background:#f4f4ef;border-radius:20px;padding:16px}.row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid #e4e4de}.row:last-of-type{border:0}.icon{width:25px;flex:0 0 25px}.value{font-weight:650}.context{font-weight:500;line-height:1.35}
+.type{display:inline-block;padding:7px 10px;border-radius:999px;background:#202020;color:#fff;font-size:12px;font-weight:700}.hidden{display:none}.small{font-size:13px}.why{font-size:14px;line-height:1.4;color:#666;margin:14px 0 0}
+</style>
+</head>
+<body>
+<main>
+<div class="muted" id="date"></div>
+<h1>Buenos días 👋</h1>
+<div class="muted">Less intenta decidir menos por vos.</div>
+
+<section class="card">
+<div class="label">🌱 PARA SER</div>
+<div class="hero">Ser paciente antes de responder.</div>
+<div class="muted" style="margin-top:8px">Una sola intención para hoy.</div>
+</section>
+
+<section class="card">
+<div class="label">✝️ PARA RECORDAR</div>
+<div class="hero" style="font-size:19px">Todo lo que hagan, háganlo de corazón.</div>
+<div class="muted small" style="margin-top:8px">Colosenses 3:23</div>
+</section>
+
+<div id="today"></div>
+
+<section class="card">
+<div class="label">💬 DECÍMELO</div>
+<div class="hero" style="font-size:19px">No pienses cómo organizarlo. Decímelo como se lo dirías a alguien.</div>
+<div class="muted" style="margin-top:7px">Less intenta entender qué es, cuándo importa y por qué.</div>
+<textarea id="input" placeholder="Ej.: El jueves cuando salga del trabajo tengo que pasar por el súper y comprar pañales y café porque el viernes vienen mis suegros."></textarea>
+<button class="primary" id="understand">Entender esto por mí →</button>
+<div id="result" class="result hidden"></div>
+</section>
+
+<section class="card">
+<div class="label">🧠 MENOS DECISIONES</div>
+<p>Vos hablás. Less organiza.</p>
+</section>
+</main>
+
+<script>
+const old=JSON.parse(localStorage.getItem("less-v04")||'{"tasks":[]}');
+const KEY="less-v05";
+let state=JSON.parse(localStorage.getItem(KEY)||'null');
+if(!state) state={tasks:old.tasks||[],events:[],habits:[],memories:[]};
+const save=()=>localStorage.setItem(KEY,JSON.stringify(state));
+document.getElementById("date").textContent=new Intl.DateTimeFormat("es-AR",{weekday:"long",day:"numeric",month:"long"}).format(new Date());
+
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]||m));}
+function section(icon,title,items,type){
+ if(!items.length)return "";
+ let body=items.map((t,i)=>{
+   let check=type==="Tarea"?'<button class="check">'+(t.done?'✓':'')+'</button>':'<span style="width:25px;flex:0 0 25px;text-align:center;font-size:20px">'+(type==="Hábito"?"🌱":type==="Evento"?"📅":"🧠")+'</span>';
+   return '<div class="item '+(t.done?'done':'')+'" data-type="'+type+'" data-i="'+i+'">'+check+'<div><div class="item-title">'+esc(t.title)+'</div>'+(t.meta?'<div class="meta">'+esc(t.meta)+'</div>':'')+'</div></div>';
+ }).join("");
+ return '<section class="section"><div class="section-head"><h3>'+icon+' '+title+'</h3><span class="muted small">'+items.length+(type==="Tarea"?" pendientes":"")+'</span></div>'+body+'</section>';
+}
+function render(){
+ const box=document.getElementById("today");
+ box.innerHTML=
+ section("🎯","Para hacer",state.tasks,"Tarea")+
+ section("📅","Próximamente",state.events,"Evento")+
+ section("🌱","Para incorporar",state.habits,"Hábito")+
+ section("🧠","Para recordar",state.memories,"Memoria");
+ box.querySelectorAll('.check').forEach((b)=>{
+   b.onclick=()=>{
+     const item=b.closest(".item"),i=+item.dataset.i;
+     state.tasks[i].done=!state.tasks[i].done;save();render();
+   }
+ });
+}
+function understand(text){
+ const s=text.toLowerCase(), fields=[];
+ const add=(icon,label,value,kind="normal")=>fields.push({icon,label,value,kind});
+ let type="Memoria",title=text.trim(),why="No parece pedir una acción inmediata. Lo conservaría como contexto para vos.";
+
+ const habit=/quiero (empezar|volver|hacer|incorporar)|me gustaría|me gustaria|quiero tener el hábito|quiero tener el habito|cada día|cada dia|todas las mañanas|todas las noches|todos los días|todos los dias/.test(s);
+ const event=/cumpleaños|cumpleanos|cumple|reunión|reunion|cita|turno|evento|fiesta|viaje|casamiento/.test(s);
+ const task=/tengo que|debo|hay que|acordarme de|acordate de|necesito (comprar|hacer|llamar|mandar|enviar|pagar|llevar)|pasar por|comprar|llamar|mandar|enviar|pagar|llevar|renovar/.test(s);
+
+ if(habit){
+   type="Hábito";why="Esto suena más a algo que querés incorporar a tu vida que a una tarea puntual.";
+   if(/leer/.test(s))title="Leer antes de dormir";
+   else title=text.replace(/^(che[,\s]*)?/i,"").trim();
+   if(/antes de dormir|al acostarme|por la noche/.test(s))add("🌙","Momento","Antes de dormir");
+   else if(/mañana|mañanas/.test(s))add("🌅","Momento","Por la mañana");
+ }else if(event&&!task){
+   type="Evento";why="Hay algo que ocurre en una fecha o momento concreto.";
+ }else if(task){
+   type="Tarea";why="Hay una acción concreta que requiere que hagas algo.";
+   if(/comprar/.test(s)){
+     let m=text.match(/comprar\s+(.+?)(?:\s+porque|\s+ya que|\s+cuando|\s+el\s+(?:lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado|domingo)|\s+mañana|\s+hoy|$)/i);
+     title=m?("Comprar "+m[1].replace(/[.,]$/,"").trim()):"Comprar";
+   }else if(/llamar/.test(s)){
+     let m=text.match(/llamar\s+(?:a\s+)?(.+?)(?:\s+porque|\s+ya que|\s+cuando|\s+mañana|\s+hoy|$)/i);
+     title=m?("Llamar a "+m[1].replace(/[.,]$/,"").trim()):"Llamar";
+   }else title=text.replace(/^(che[,\s]*)?(tengo que|debo|hay que|acordarme de|acordate de)\s+/i,"").trim();
+ }else if(event){type="Evento";why="Parece algo que querés tener presente, no una tarea.";
+ }
+
+ let d=s.match(/\b(lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado|domingo)\b/);
+ if(d)add("📅","Cuándo",d[1][0].toUpperCase()+d[1].slice(1));
+ if(/\bhoy\b/.test(s))add("📅","Cuándo","Hoy");
+ if(/\bmañana\b/.test(s))add("📅","Cuándo","Mañana");
+ if(/después de buscar a las chicas/.test(s))add("🕐","Momento","Después de buscar a las chicas");
+ else if(/cuando salga del trabajo/.test(s))add("🕐","Momento","Al salir del trabajo");
+ let hm=s.match(/antes de las (\d{1,2})(?::(\d{2}))?/);if(hm)add("🕐","Hora","Antes de las "+hm[1]+(hm[2]?":"+hm[2]:""));
+ if(/súper|supermercado/.test(s))add("📍","Dónde","Supermercado");
+ if(/farmacia/.test(s))add("📍","Dónde","Farmacia");
+ let person=text.match(/(?:a|para)\s+([A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñ]+)?)/);
+ if(person&&!/la farmacia|el súper|el super|el supermercado/i.test(person[1]))add("👤","Para quién",person[1]);
+ let context=text.match(/(?:porque|ya que)\s+(.+)$/i);
+ if(context)add("🧠","Por qué",context[1].replace(/[.]$/,"").trim(),"context");
+ return {type,title,fields,why};
+}
+function renderResult(x){
+ const r=document.getElementById("result");
+ const rows=x.fields.map(f=>'<div class="row"><span class="icon">'+f.icon+'</span><div><div class="muted small">'+esc(f.label)+'</div><div class="'+(f.kind==="context"?"context":"value")+'">'+esc(f.value.charAt(0).toUpperCase()+f.value.slice(1))+'</div></div></div>').join("");
+ r.innerHTML='<span class="type">'+esc(x.type)+'</span><h2 style="margin:14px 0 8px">'+esc(x.title)+'</h2>'+rows+'<p class="why">'+esc(x.why)+'</p><div style="margin-top:16px"><button class="primary" id="accept">✓ Guardar así</button></div>';
+ r.classList.remove("hidden");
+ document.getElementById("accept").onclick=()=>{
+   const item={title:x.title,done:false,meta:x.fields.map(f=>f.value).join(" · ")};
+   if(x.type==="Tarea")state.tasks.unshift(item);
+   if(x.type==="Evento")state.events.unshift(item);
+   if(x.type==="Hábito")state.habits.unshift(item);
+   if(x.type==="Memoria")state.memories.unshift(item);
+   save();render();document.getElementById("input").value="";r.classList.add("hidden");
+ };
+}
+document.getElementById("understand").onclick=()=>{
+ const text=document.getElementById("input").value.trim();if(text)renderResult(understand(text));
+};
+render();
+</script>
+</body>
+</html>
